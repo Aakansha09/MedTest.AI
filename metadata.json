@@ -1,0 +1,5 @@
+{
+  "name": "MedTest AI",
+  "description": "An AI-powered application to generate medical software test cases from requirement documents. Upload your documents to automatically create structured, traceable test cases.",
+  "requestFramePermissions": []
+}

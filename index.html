@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MedTest AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              background: '#F9FAFB', // gray-50
+              sidebar: '#FFFFFF',
+              primary: '#2563EB', // blue-600
+              'primary-hover': '#1D4ED8', // blue-700
+              'primary-light': '#EFF6FF', // blue-50
+              surface: '#FFFFFF', // Card backgrounds
+              'border-color': '#E5E7EB', // gray-200
+              'text-primary': '#111827', // gray-900
+              'text-secondary': '#6B7280', // gray-500
+              'text-white': '#FFFFFF',
+              'status-green': '#D1FAE5',
+              'text-green': '#065F46',
+              'status-yellow': '#FEF3C7',
+              'text-yellow': '#92400E',
+              'status-blue': '#DBEAFE',
+              'text-blue': '#1E40AF',
+              'status-purple': '#E9D5FF',
+              'text-purple': '#5B21B6',
+              'status-red': '#FEE2E2',
+              'text-red': '#991B1B',
+              'status-gray': '#F3F4F6', // gray-100
+              'text-gray': '#374151',
+            },
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+            },
+          },
+        },
+      }
+    </script>
+    <link rel="preconnect" href="https://rsms.me/">
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+  <script type="importmap">
+{
+  "imports": {
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.20.0",
+    "react/": "https://aistudiocdn.com/react@^19.1.1/",
+    "react": "https://aistudiocdn.com/react@^19.1.1",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
+    "pdfjs-dist/build/pdf.min.mjs": "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.5.136/pdf.min.mjs",
+    "pdfjs-dist/": "https://aistudiocdn.com/pdfjs-dist@^5.4.149/"
+  }
+}
+</script>
+</head>
+  <body class="bg-background font-sans">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
