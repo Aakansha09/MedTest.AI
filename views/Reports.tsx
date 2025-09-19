@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef } from 'react';
 import { TestCase, Report, ReportStatus, Requirement } from '../types';
 import { DonutChart } from '../components/DonutChart';
 import { BarChart } from '../components/BarChart';
@@ -17,8 +17,10 @@ import { FileTextIcon } from '../components/icons/FileTextIcon';
 import { WarningIcon } from '../components/icons/WarningIcon';
 import { ChartPieIcon } from '../components/icons/ChartPieIcon';
 import { TagIcon } from '../components/icons/TagIcon';
-// FIX: Import CheckCircleIcon
 import { CheckCircleIcon } from '../components/icons/CheckCircleIcon';
+import { DotsHorizontalIcon } from '../components/icons/DotsHorizontalIcon';
+import { useOnClickOutside } from '../hooks/useOnClickOutside';
+import { exportReportDataAsCSV, exportReportDataAsPDF, exportReportDataAsJSON } from '../utils/exportUtils';
 
 
 interface ReportsProps {
@@ -77,6 +79,11 @@ export const Reports: React.FC<ReportsProps> = ({ testCases, requirements, repor
     const [typeFilter, setTypeFilter] = useState<string>('All Types');
     const [statusFilter, setStatusFilter] = useState<string>('All Status');
     
+    const [activeActionMenu, setActiveActionMenu] = useState<string | null>(null);
+    const actionMenuRef = useRef<HTMLDivElement>(null);
+
+    useOnClickOutside(actionMenuRef, () => setActiveActionMenu(null));
+
     const allReportTypes = useMemo(() => ['All Types', ...Array.from(new Set(reports.map(r => r.subtitle)))], [reports]);
     const allReportStatuses = ['All Status', ...Array.from(new Set(reports.map(r => r.status)))];
 
@@ -220,6 +227,21 @@ export const Reports: React.FC<ReportsProps> = ({ testCases, requirements, repor
         }, 2000);
     };
 
+    const handleDownload = (report: Report, format: 'csv' | 'pdf' | 'json') => {
+        switch (format) {
+            case 'csv':
+                exportReportDataAsCSV(report);
+                break;
+            case 'pdf':
+                exportReportDataAsPDF(report);
+                break;
+            case 'json':
+                exportReportDataAsJSON(report);
+                break;
+        }
+        setActiveActionMenu(null);
+    };
+
   return (
     <>
     {isGenerateModalOpen && <GenerateReportModal onClose={() => setIsGenerateModalOpen(false)} onCreateReport={handleCreateReport} />}
@@ -323,7 +345,7 @@ export const Reports: React.FC<ReportsProps> = ({ testCases, requirements, repor
                             <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">Scope</th>
                             <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">Status</th>
                             <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">Test Cases</th>
-                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">Actions</th>
+                            <th scope="col" className="px-4 py-3 text-right text-xs font-medium text-text-secondary uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
                      <tbody className="bg-surface divide-y divide-border-color">
@@ -356,12 +378,58 @@ export const Reports: React.FC<ReportsProps> = ({ testCases, requirements, repor
                                        <div>{report.fileSize} &bull; {report.fileType}</div>
                                    </div>
                                </td>
-                               <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
-                                   <div className="flex items-center gap-4">
-                                       <button onClick={() => setSelectedReport(report)} className="text-gray-400 hover:text-gray-600"><EyeIcon className="h-5 w-5"/></button>
-                                       <button className="text-gray-400 hover:text-gray-600"><DownloadIcon className="h-5 w-5"/></button>
-                                       <button className="text-gray-400 hover:text-gray-600"><RefreshIcon className="h-5 w-5"/></button>
-                                   </div>
+                               <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                   <div className="relative inline-block text-left" ref={activeActionMenu === report.id ? actionMenuRef : null}>
+                                        <button
+                                            onClick={() => setActiveActionMenu(activeActionMenu === report.id ? null : report.id)}
+                                            className="p-1 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+                                        >
+                                            <DotsHorizontalIcon className="h-5 w-5"/>
+                                        </button>
+                                        {activeActionMenu === report.id && (
+                                            <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-surface ring-1 ring-black ring-opacity-5 z-20">
+                                                <div className="py-1" role="menu" aria-orientation="vertical">
+                                                    <button
+                                                        onClick={() => { setSelectedReport(report); setActiveActionMenu(null); }}
+                                                        className="w-full text-left flex items-center px-4 py-2 text-sm text-text-primary hover:bg-gray-100"
+                                                        role="menuitem"
+                                                    >
+                                                        <EyeIcon className="w-4 h-4 mr-3 text-text-secondary" /> View Details
+                                                    </button>
+                                                    <div className="border-t border-border-color my-1"></div>
+                                                    <button
+                                                        onClick={() => handleDownload(report, 'csv')}
+                                                        className="w-full text-left flex items-center px-4 py-2 text-sm text-text-primary hover:bg-gray-100"
+                                                        role="menuitem"
+                                                    >
+                                                        <DownloadIcon className="w-4 h-4 mr-3 text-text-secondary" /> Download CSV
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDownload(report, 'pdf')}
+                                                        className="w-full text-left flex items-center px-4 py-2 text-sm text-text-primary hover:bg-gray-100"
+                                                        role="menuitem"
+                                                    >
+                                                        <DownloadIcon className="w-4 h-4 mr-3 text-text-secondary" /> Download PDF
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDownload(report, 'json')}
+                                                        className="w-full text-left flex items-center px-4 py-2 text-sm text-text-primary hover:bg-gray-100"
+                                                        role="menuitem"
+                                                    >
+                                                    <DownloadIcon className="w-4 h-4 mr-3 text-text-secondary" /> Download JSON
+                                                    </button>
+                                                    <div className="border-t border-border-color my-1"></div>
+                                                    <button
+                                                        onClick={() => { alert('Refreshing report...'); setActiveActionMenu(null); }}
+                                                        className="w-full text-left flex items-center px-4 py-2 text-sm text-text-primary hover:bg-gray-100"
+                                                        role="menuitem"
+                                                    >
+                                                        <RefreshIcon className="w-4 h-4 mr-3 text-text-secondary" /> Refresh Report
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                </td>
                            </tr>
                        ))}
