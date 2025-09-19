@@ -34,3 +34,20 @@ This platform significantly reduces manual effort, accelerates testing cycles, a
 2.  **AI Analysis & Review**: The application provides an AI-generated summary, identifies test categories, and estimates the number of test cases. The user reviews and approves this analysis.
 3.  **Generation in Progress**: A visual progress screen shows the AI working through multiple steps: extracting requirements, generating test cases, and building the traceability matrix.
 4.  **Manage & Analyze**: The user is directed to the results, where they can manage test cases in the **Generated Test Cases** view, analyze coverage in the **Traceability Matrix**, or review high-level data in the **Reports** view.
+
+### 🧠 Future Architecture: Integrating Vertex AI
+
+To elevate MedTest AI from a powerful generator to an intelligent, context-aware platform, the next architectural evolution involves integrating Google Cloud's Vertex AI. This transforms the application into a full-stack solution, unlocking advanced capabilities through a machine learning backend.
+
+*   **Backend Service**: A Node.js backend will be introduced to manage API requests, securely handle the Gemini API key, and communicate with Vertex AI services.
+
+*   **Vector Database with Vertex AI Vector Search**:
+    *   Generated test cases and requirements will be converted into vector embeddings using Google's `text-embedding-004` model.
+    *   These embeddings will be stored and indexed in **Vertex AI Vector Search**, a high-performance, scalable vector database.
+
+*   **Retrieval-Augmented Generation (RAG)**: When generating new test cases, the system will first query Vertex AI Vector Search to find existing, semantically similar test cases. This context is then provided to the Gemini model, resulting in:
+    *   **Higher Consistency**: New test cases will match the style, format, and terminology of existing ones.
+    *   **Reduced Duplication**: The AI can avoid creating redundant tests.
+    *   **Improved Quality**: Grounding the AI with relevant examples enhances the accuracy and relevance of the output.
+
+*   **Semantic Search**: Users will be able to search for test cases based on their meaning and intent, not just keywords. For example, a search for "patient data privacy" could intelligently find test cases related to PHI encryption.

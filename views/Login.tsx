@@ -1,6 +1,6 @@
 import React from 'react';
-import { TestCasesIcon } from '../components/icons/TestCasesIcon';
 import { GoogleIcon } from '../components/icons/GoogleIcon';
+import { LogoIcon } from '../components/icons/LogoIcon';
 
 interface LoginProps {
   onLogin: () => void;
@@ -21,9 +21,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
         
         <div className="pr-8">
           <div className="flex items-center mb-6">
-            <div className="w-12 h-12 flex items-center justify-center rounded-xl bg-primary text-white shadow-lg">
-              <TestCasesIcon className="w-7 h-7" />
-            </div>
+            <LogoIcon className="w-12 h-12" />
             <h1 className="text-3xl font-bold text-text-primary ml-4">MedTest AI</h1>
           </div>
           <p className="text-xl text-text-secondary mt-2 mb-8">Healthcare Test Case Generation Platform</p>

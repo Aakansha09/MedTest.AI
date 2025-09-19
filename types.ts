@@ -93,3 +93,28 @@ export interface BulkUpdatePayload {
     values: string[];
   };
 }
+
+export interface JiraConfig {
+    url: string;
+    email: string;
+    token: string;
+    connected: boolean;
+}
+
+export interface JiraProject {
+    id: string;
+    key: string;
+    name: string;
+}
+
+export interface JiraIssue {
+    id: string;
+    key: string;
+    fields: {
+        summary: string;
+        description: any; // Atlassian Document Format
+        issuetype: {
+            name: string;
+        }
+    };
+}

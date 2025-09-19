@@ -14,6 +14,7 @@ import { FlaskIcon } from '../components/icons/FlaskIcon';
 import { BarChartIcon } from '../components/icons/BarChartIcon';
 import { EyeIcon } from '../components/icons/EyeIcon';
 import { RefreshIcon } from '../components/icons/RefreshIcon';
+import { ReportDetailModal } from '../components/ReportDetailModal';
 
 
 interface ReportsProps {
@@ -71,9 +72,10 @@ const statusColors: Record<string, {dot: string, text: string}> = {
 
 export const Reports: React.FC<ReportsProps> = ({ testCases, reports, setReports }) => {
     const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
+    const [selectedReport, setSelectedReport] = useState<Report | null>(null);
     
     const [searchFilter, setSearchFilter] = useState('');
-    const [dateFilter, setDateFilter] = useState('30'); // 'all', '30', '90'
+    const [dateFilter, setDateFilter] = useState('all'); // 'all', '30', '90'
     const [typeFilter, setTypeFilter] = useState<string>('All Types');
     const [statusFilter, setStatusFilter] = useState<string>('All Status');
     
@@ -176,6 +178,7 @@ export const Reports: React.FC<ReportsProps> = ({ testCases, reports, setReports
   return (
     <>
     {isGenerateModalOpen && <GenerateReportModal onClose={() => setIsGenerateModalOpen(false)} onCreateReport={handleCreateReport} />}
+    {selectedReport && <ReportDetailModal report={selectedReport} onClose={() => setSelectedReport(null)} />}
     <div className="space-y-8">
         <div className="flex flex-wrap justify-between items-start gap-4">
             <div>
@@ -242,9 +245,9 @@ export const Reports: React.FC<ReportsProps> = ({ testCases, reports, setReports
                  <div className="flex items-center gap-2">
                     <span className="text-sm text-text-secondary">Date Range:</span>
                     <select value={dateFilter} onChange={e => setDateFilter(e.target.value)} className="bg-background border border-border-color text-text-primary text-sm rounded-lg focus:ring-primary focus:border-primary block w-auto p-2.5">
+                        <option value="all">All Time</option>
                         <option value="30">Last 30 days</option>
                         <option value="90">Last 90 days</option>
-                        <option value="all">All Time</option>
                     </select>
                     <span className="text-sm text-text-secondary">Type:</span>
                      <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className="bg-background border border-border-color text-text-primary text-sm rounded-lg focus:ring-primary focus:border-primary block w-auto p-2.5">
@@ -302,7 +305,7 @@ export const Reports: React.FC<ReportsProps> = ({ testCases, reports, setReports
                                </td>
                                <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
                                    <div className="flex items-center gap-4">
-                                       <button className="text-gray-400 hover:text-gray-600"><EyeIcon className="h-5 w-5"/></button>
+                                       <button onClick={() => setSelectedReport(report)} className="text-gray-400 hover:text-gray-600"><EyeIcon className="h-5 w-5"/></button>
                                        <button className="text-gray-400 hover:text-gray-600"><DownloadIcon className="h-5 w-5"/></button>
                                        <button className="text-gray-400 hover:text-gray-600"><RefreshIcon className="h-5 w-5"/></button>
                                    </div>

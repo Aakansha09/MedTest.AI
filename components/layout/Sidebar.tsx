@@ -12,6 +12,7 @@ import { DashboardIcon } from '../icons/DashboardIcon';
 import { PlusIcon } from '../icons/PlusIcon';
 import { PencilIcon } from '../icons/PencilIcon';
 import { LoaderIcon } from '../icons/LoaderIcon';
+import { LogoIcon } from '../icons/LogoIcon';
 
 interface NavItemProps {
   view: View;
@@ -88,9 +89,7 @@ export const Sidebar: React.FC<{
       <div className="relative flex flex-col h-full px-3 py-4 overflow-y-auto bg-sidebar border-r border-border-color">
         <div className={`flex items-center mb-5 ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
             <div className={`flex items-center ${isCollapsed ? 'hidden' : ''}`}>
-                 <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-primary text-white">
-                    <TestCasesIcon className="w-5 h-5"/>
-                 </div>
+                 <LogoIcon className="w-8 h-8" />
                 <span className="self-center text-xl font-bold whitespace-nowrap ml-2 text-text-primary">MedTest AI</span>
             </div>
             <button 

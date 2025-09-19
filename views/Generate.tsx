@@ -1,12 +1,12 @@
-import React, { useState, useRef, useCallback } from 'react';
-import { ProcessingState, RequirementsData } from '../types';
+import React, { useState } from 'react';
+import { JiraConfig, ProcessingState, RequirementsData, View } from '../types';
 import { LockIcon } from '../components/icons/LockIcon';
 import { ShieldCheckIcon } from '../components/icons/ShieldCheckIcon';
 import { RobotIcon } from '../components/icons/RobotIcon';
-import { UploadIcon } from '../components/icons/UploadIcon';
 import { UserIcon } from '../components/icons/UserIcon';
-import { FileTextIcon } from '../components/icons/FileTextIcon';
 import { JiraIcon } from '../components/icons/JiraIcon';
+import { JiraImportTab } from '../components/JiraImportTab';
+import { FileUpload } from '../components/FileUpload';
 
 type Tab = 'upload' | 'jira' | 'manual';
 
@@ -14,6 +14,8 @@ interface GenerateProps {
     onStartGeneration: (data: { files?: File[], text?: string, source: RequirementsData['source'] }) => void;
     processingState: ProcessingState;
     error: string | null;
+    jiraConfig: JiraConfig | null;
+    setActiveView: (view: View) => void;
 }
 
 const TabButton: React.FC<{ active: boolean; onClick: () => void; children: React.ReactNode; }> = ({ active, onClick, children }) => (
@@ -37,42 +39,12 @@ Acceptance Criteria:
 - User is redirected to dashboard on successful login
 - Error message shown for invalid credentials`;
 
-export const Generate: React.FC<GenerateProps> = ({ onStartGeneration, processingState, error }) => {
+export const Generate: React.FC<GenerateProps> = ({ onStartGeneration, processingState, error, jiraConfig, setActiveView }) => {
     const [activeTab, setActiveTab] = useState<Tab>('upload');
     const [manualText, setManualText] = useState('');
+    const [jiraText, setJiraText] = useState('');
     const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-    const [isDragging, setIsDragging] = useState(false);
-    const fileInputRef = useRef<HTMLInputElement>(null);
     const isProcessing = processingState !== ProcessingState.IDLE && processingState !== ProcessingState.COMPLETE;
-
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = e.target.files ? Array.from(e.target.files) : [];
-        if (files.length > 0) {
-            setSelectedFiles(files);
-        }
-    };
-    
-    const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsDragging(true);
-    }, []);
-
-    const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsDragging(false);
-    }, []);
-
-    const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsDragging(false);
-        const files = e.dataTransfer.files ? Array.from(e.dataTransfer.files) : [];
-        if (files.length > 0) {
-            setSelectedFiles(files);
-        }
-    }, []);
     
     const handleSubmit = () => {
         if (isProcessing) return;
@@ -80,51 +52,43 @@ export const Generate: React.FC<GenerateProps> = ({ onStartGeneration, processin
             onStartGeneration({ files: selectedFiles, source: 'Document Upload' });
         } else if (activeTab === 'manual' && manualText.trim()) {
             onStartGeneration({ text: manualText, source: 'Manual Entry' });
+        } else if (activeTab === 'jira' && jiraText.trim()) {
+            onStartGeneration({ text: jiraText, source: 'Jira' });
         }
     };
 
     const isGenerateDisabled = isProcessing ||
         (activeTab === 'upload' && selectedFiles.length === 0) ||
         (activeTab === 'manual' && !manualText.trim()) ||
-        (activeTab === 'jira');
+        (activeTab === 'jira' && !jiraText.trim());
 
     const renderTabContent = () => {
         switch (activeTab) {
             case 'upload':
                 return (
-                     <div 
-                        className={`p-6 border-2 border-dashed rounded-lg text-center cursor-pointer transition-colors ${isDragging ? 'border-primary bg-primary-light' : 'border-border-color bg-background'}`}
-                        onDragOver={handleDragOver}
-                        onDragLeave={handleDragLeave}
-                        onDrop={handleDrop}
-                        onClick={() => fileInputRef.current?.click()}
-                    >
-                        <UploadIcon className="w-12 h-12 mx-auto text-text-secondary" />
-                        <h3 className="mt-4 text-lg font-semibold text-text-primary">Upload requirements documents</h3>
-                        <p className="mt-1 text-sm text-text-secondary">Supported formats: PDF, DOC, DOCX, TXT</p>
-                        <p className="mt-4 text-sm text-text-secondary">or</p>
-                        <button
-                            type="button"
-                            className="mt-4 px-4 py-2 text-sm font-medium rounded-md text-text-primary bg-surface border border-border-color hover:bg-gray-50"
-                        >
-                            Browse Files
-                        </button>
-                    </div>
+                     <FileUpload 
+                        onFilesSelected={setSelectedFiles}
+                        processing={isProcessing}
+                     />
                 );
             case 'jira':
-                return (
-                    <div className="p-6 text-center">
-                        <FileTextIcon className="w-12 h-12 mx-auto text-text-secondary" />
-                        <h3 className="mt-4 text-lg font-semibold text-text-primary">Jira integration not connected</h3>
-                        <p className="mt-1 text-sm text-text-secondary max-w-xs mx-auto">Connect to Jira first to import tickets from your projects.</p>
-                        <button
-                            type="button"
-                            className="mt-6 px-4 py-2 text-sm font-medium rounded-md text-white bg-primary hover:bg-primary-hover"
-                        >
-                            Connect Jira
-                        </button>
-                    </div>
-                );
+                 if (!jiraConfig?.connected) {
+                    return (
+                        <div className="p-6 text-center">
+                            <JiraIcon className="w-12 h-12 mx-auto text-text-secondary" />
+                            <h3 className="mt-4 text-lg font-semibold text-text-primary">Jira integration not connected</h3>
+                            <p className="mt-1 text-sm text-text-secondary max-w-xs mx-auto">Connect to Jira first to import tickets from your projects.</p>
+                            <button
+                                type="button"
+                                onClick={() => setActiveView('integrations')}
+                                className="mt-6 px-4 py-2 text-sm font-medium rounded-md text-white bg-primary hover:bg-primary-hover"
+                            >
+                                Connect Jira
+                            </button>
+                        </div>
+                    );
+                }
+                return <JiraImportTab config={jiraConfig} onTextExtracted={setJiraText} />;
             case 'manual':
                 return (
                     <div className="p-2">
@@ -250,7 +214,6 @@ export const Generate: React.FC<GenerateProps> = ({ onStartGeneration, processin
                     </div>
                 </div>
             </div>
-            <input ref={fileInputRef} type="file" multiple accept=".pdf,.txt,.md,.xml,.doc,.docx" onChange={handleFileChange} className="hidden" />
         </div>
     );
 };

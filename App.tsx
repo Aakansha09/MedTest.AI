@@ -11,7 +11,7 @@ import { Reports } from './views/Reports';
 import { Traceability } from './views/Traceability';
 import { Login } from './views/Login';
 import { extractRequirements, generateTestCases } from './services/geminiService';
-import { BulkUpdatePayload, TestCase, ProcessingState, View, Report, RequirementsData, GenerationProgress, Requirement, TestCaseStatus, TestCasePriority } from './types';
+import { BulkUpdatePayload, TestCase, ProcessingState, View, Report, RequirementsData, GenerationProgress, Requirement, JiraConfig } from './types';
 import { extractTextFromFiles } from './utils/fileParser';
 
 const initialMockTestCases: TestCase[] = [
@@ -206,6 +206,16 @@ const App: React.FC = () => {
       return initialMockReports;
     }
   });
+  
+  const [jiraConfig, setJiraConfig] = useState<JiraConfig | null>(() => {
+    try {
+      const storedConfig = window.localStorage.getItem('healthtest-jiraConfig');
+      return storedConfig ? JSON.parse(storedConfig) : null;
+    } catch (error) {
+      console.error("Failed to parse Jira config from localStorage", error);
+      return null;
+    }
+  });
 
   const [processingState, setProcessingState] = useState<ProcessingState>(ProcessingState.IDLE);
   const [error, setError] = useState<string | null>(null);
@@ -238,6 +248,18 @@ const App: React.FC = () => {
       console.error("Failed to save reports to localStorage", error);
     }
   }, [reports]);
+
+  useEffect(() => {
+    try {
+      if (jiraConfig) {
+        window.localStorage.setItem('healthtest-jiraConfig', JSON.stringify(jiraConfig));
+      } else {
+        window.localStorage.removeItem('healthtest-jiraConfig');
+      }
+    } catch (error) {
+      console.error("Failed to save Jira config to localStorage", error);
+    }
+  }, [jiraConfig]);
 
   const handleLogin = useCallback(() => {
     setIsAuthenticated(true);
@@ -379,6 +401,8 @@ const App: React.FC = () => {
                   onStartGeneration={handleStartGeneration}
                   processingState={processingState}
                   error={error}
+                  jiraConfig={jiraConfig}
+                  setActiveView={setActiveView}
                 />;
       case 'review':
         return requirementsData ? <Review 
@@ -395,6 +419,8 @@ const App: React.FC = () => {
                   onStartGeneration={handleStartGeneration}
                   processingState={processingState}
                   error="Requirement data is missing. Please start over."
+                  jiraConfig={jiraConfig}
+                  setActiveView={setActiveView}
                 />;
       case 'processing':
           return <Processing progress={generationProgress} />;
@@ -403,9 +429,10 @@ const App: React.FC = () => {
                   testCases={testCases} 
                   setActiveView={setActiveView} 
                   onBulkUpdate={handleBulkUpdate}
+                  jiraConfig={jiraConfig}
                 />;
       case 'integrations':
-        return <Integrations />;
+        return <Integrations jiraConfig={jiraConfig} setJiraConfig={setJiraConfig} />;
       case 'reports':
         return <Reports 
                   testCases={testCases} 

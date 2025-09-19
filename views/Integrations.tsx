@@ -8,11 +8,15 @@ import { EpicSystemsIcon } from '../components/icons/EpicSystemsIcon';
 import { CernerIcon } from '../components/icons/CernerIcon';
 import { FhirIcon } from '../components/icons/FhirIcon';
 import { CogIcon } from '../components/icons/CogIcon';
+import { JiraConfig } from '../types';
+import { verifyConnection } from '../services/jiraService';
+import { LoaderIcon } from '../components/icons/LoaderIcon';
+import { InfoIcon } from '../components/icons/InfoIcon';
 
 interface IntegrationField {
     name: string;
     placeholder: string;
-    type: 'text' | 'password';
+    type: 'text' | 'password' | 'email';
 }
 
 interface Integration {
@@ -22,10 +26,9 @@ interface Integration {
     description: string;
     logo: React.FC<React.SVGProps<SVGSVGElement>>;
     fields: IntegrationField[];
-    connected: boolean;
 }
 
-const initialIntegrations: Integration[] = [
+const allIntegrations: Integration[] = [
     { 
         id: "jira",
         title: "Jira Healthcare", 
@@ -34,9 +37,9 @@ const initialIntegrations: Integration[] = [
         logo: JiraIcon,
         fields: [
             { name: "Instance URL", placeholder: "https://your-company.atlassian.net", type: "text" },
+            { name: "Email", placeholder: "your-email@company.com", type: "email" },
             { name: "API Token", placeholder: "Enter your Jira API Token", type: "password" }
         ],
-        connected: false 
     },
     { 
         id: "azure",
@@ -48,7 +51,6 @@ const initialIntegrations: Integration[] = [
             { name: "Organization URL", placeholder: "https://dev.azure.com/your-org", type: "text" },
             { name: "Personal Access Token", placeholder: "Enter your PAT", type: "password" }
         ],
-        connected: false 
     },
     { 
         id: "github",
@@ -60,7 +62,6 @@ const initialIntegrations: Integration[] = [
             { name: "Repository URL", placeholder: "https://github.com/org/repo", type: "text" },
             { name: "Personal Access Token", placeholder: "Enter your PAT", type: "password" }
         ],
-        connected: false 
     },
     { 
         id: "epic",
@@ -72,7 +73,6 @@ const initialIntegrations: Integration[] = [
             { name: "FHIR Endpoint URL", placeholder: "https://your-epic-fhir-endpoint", type: "text" },
             { name: "API Key", placeholder: "Enter your Epic API Key", type: "password" }
         ],
-        connected: false 
     },
     { 
         id: "cerner",
@@ -84,7 +84,6 @@ const initialIntegrations: Integration[] = [
             { name: "FHIR Endpoint URL", placeholder: "https://your-cerner-fhir-endpoint", type: "text" },
             { name: "API Key", placeholder: "Enter your Cerner API Key", type: "password" }
         ],
-        connected: false 
     },
     { 
         id: "fhir",
@@ -96,25 +95,85 @@ const initialIntegrations: Integration[] = [
             { name: "Server Base URL", placeholder: "https://your-fhir-server.com/api", type: "text" },
             { name: "Auth Token", placeholder: "Enter your Bearer Token", type: "password" }
         ],
-        connected: false 
     },
 ];
 
+interface IntegrationsProps {
+    jiraConfig: JiraConfig | null;
+    setJiraConfig: (config: JiraConfig | null) => void;
+}
+
+const CorsErrorHelp: React.FC<{ error: string }> = ({ error }) => (
+    <div className="p-4 bg-amber-50 border border-amber-200 text-amber-800 rounded-md text-sm">
+        <div className="flex items-start">
+            <InfoIcon className="w-5 h-5 mr-3 flex-shrink-0 mt-0.5 text-amber-500" />
+            <div>
+                <h4 className="font-semibold mb-1">Browser Security Restriction (CORS)</h4>
+                <p className="mb-3">{error}</p>
+                <p className="font-semibold mb-1">How to resolve this:</p>
+                <ul className="list-disc list-inside space-y-2 text-xs">
+                    <li>
+                        <strong>For Local Development:</strong> The easiest solution is to use a browser extension that disables the CORS policy. Search for "CORS Unblock" or a similar extension for your browser.
+                    </li>
+                    <li>
+                        <strong>For Production Use:</strong> This application's architecture requires a backend proxy to securely handle requests to the Jira API. This is the standard, secure way to bypass browser CORS limitations.
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+);
 
 const IntegrationCard: React.FC<{
     integration: Integration;
-    onConnect: (id: string, formData: Record<string, string>) => void;
-    onDisconnect: (id: string) => void;
-}> = ({ integration, onConnect, onDisconnect }) => {
-    const [formData, setFormData] = useState<Record<string, string>>({});
+    jiraConfig: JiraConfig | null;
+    setJiraConfig: (config: JiraConfig | null) => void;
+}> = ({ integration, jiraConfig, setJiraConfig }) => {
+    const isJira = integration.id === 'jira';
+    const connected = isJira && jiraConfig?.connected;
+
+    const [formData, setFormData] = useState<Record<string, string>>({
+        "Instance URL": jiraConfig?.url || '',
+        "Email": jiraConfig?.email || '',
+        "API Token": jiraConfig?.token || '',
+    });
+    const [isConnecting, setIsConnecting] = useState(false);
+    const [connectionError, setConnectionError] = useState<string | null>(null);
+    const [isCorsError, setIsCorsError] = useState(false);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleConnect = async (e: React.FormEvent) => {
         e.preventDefault();
-        onConnect(integration.id, formData);
+        if (!isJira) {
+            alert('This integration is not yet implemented.');
+            return;
+        }
+        setIsConnecting(true);
+        setConnectionError(null);
+        setIsCorsError(false);
+        const config: JiraConfig = {
+            url: formData["Instance URL"],
+            email: formData["Email"],
+            token: formData["API Token"],
+            connected: false,
+        };
+
+        try {
+            await verifyConnection(config);
+            setJiraConfig({ ...config, connected: true });
+        } catch (err: any) {
+            setIsCorsError(!!err.isCorsError);
+            setConnectionError(err instanceof Error ? err.message : "Connection failed due to an unknown error.");
+        } finally {
+            setIsConnecting(false);
+        }
+    };
+
+    const handleDisconnect = () => {
+        if(isJira) setJiraConfig(null);
     };
 
     return (
@@ -131,7 +190,7 @@ const IntegrationCard: React.FC<{
             <p className="text-sm text-text-secondary mt-4 flex-1">{integration.description}</p>
             
             <div className="mt-6">
-                {integration.connected ? (
+                {connected ? (
                     <div className="flex items-center justify-between">
                          <div className="inline-flex items-center text-sm font-medium text-green-600">
                             <CheckCircleIcon className="w-5 h-5 mr-2" />
@@ -139,11 +198,18 @@ const IntegrationCard: React.FC<{
                         </div>
                         <div className="flex items-center gap-2">
                             <button onClick={() => alert("Manage settings not implemented.")} className="p-2 text-text-secondary hover:bg-gray-100 rounded-md"><CogIcon className="w-5 h-5"/></button>
-                            <button onClick={() => onDisconnect(integration.id)} className="px-3 py-1.5 text-xs font-medium text-red-700 bg-red-100 rounded-md hover:bg-red-200">Disconnect</button>
+                            <button onClick={handleDisconnect} className="px-3 py-1.5 text-xs font-medium text-red-700 bg-red-100 rounded-md hover:bg-red-200">Disconnect</button>
                         </div>
                     </div>
                 ) : (
-                    <form onSubmit={handleSubmit} className="space-y-4">
+                    <form onSubmit={handleConnect} className="space-y-4">
+                         {connectionError && (
+                            isCorsError 
+                            ? <CorsErrorHelp error={connectionError} />
+                            : <div className="p-3 bg-red-50 text-red-800 rounded-md text-sm">
+                                <strong>Connection Failed:</strong> {connectionError}
+                              </div>
+                        )}
                         {integration.fields.map(field => (
                             <div key={field.name}>
                                 <label className="text-xs font-medium text-text-secondary block mb-1.5">{field.name}</label>
@@ -151,15 +217,23 @@ const IntegrationCard: React.FC<{
                                     type={field.type}
                                     name={field.name}
                                     placeholder={field.placeholder}
+                                    value={formData[field.name] || ''}
                                     onChange={handleInputChange}
                                     required
                                     className="bg-background border border-border-color text-text-primary text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
                                 />
                             </div>
                         ))}
-                        <button type="submit" className="w-full inline-flex items-center justify-center px-4 py-2 border border-border-color text-sm font-medium rounded-md text-text-primary bg-surface hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
-                            <PlusIcon className="w-5 h-5 mr-2" />
-                            Save & Connect
+                        <button type="submit" disabled={isConnecting} className="w-full inline-flex items-center justify-center px-4 py-2 border border-border-color text-sm font-medium rounded-md text-text-primary bg-surface hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50">
+                            {isConnecting ? (
+                                <>
+                                    <LoaderIcon className="w-5 h-5 mr-2" /> Connecting...
+                                </>
+                            ) : (
+                                <>
+                                    <PlusIcon className="w-5 h-5 mr-2" /> Save & Connect
+                                </>
+                            )}
                         </button>
                     </form>
                 )}
@@ -169,66 +243,19 @@ const IntegrationCard: React.FC<{
 };
 
 
-export const Integrations: React.FC = () => {
-    const [integrations, setIntegrations] = useState<Integration[]>(initialIntegrations);
-
-    useEffect(() => {
-        try {
-            const storedIntegrations = window.localStorage.getItem('healthtest-integrations');
-            if (storedIntegrations) {
-                const connectedStatus = JSON.parse(storedIntegrations) as Record<string, boolean>;
-                setIntegrations(prev => prev.map(int => ({
-                    ...int,
-                    connected: connectedStatus[int.id] || false,
-                })));
-            }
-        } catch (error) {
-            console.error("Failed to load integration statuses from localStorage", error);
-        }
-    }, []);
-
-    const updateLocalStorage = (updatedIntegrations: Integration[]) => {
-        try {
-            const connectedStatus = updatedIntegrations.reduce((acc, int) => {
-                acc[int.id] = int.connected;
-                return acc;
-            }, {} as Record<string, boolean>);
-            window.localStorage.setItem('healthtest-integrations', JSON.stringify(connectedStatus));
-        } catch (error)            {
-            console.error("Failed to save integration statuses to localStorage", error);
-        }
-    };
-    
-    const handleConnect = (id: string, formData: Record<string, string>) => {
-        console.log(`Connecting ${id} with data:`, formData); // Simulate API call
-        const updatedIntegrations = integrations.map(int => 
-            int.id === id ? { ...int, connected: true } : int
-        );
-        setIntegrations(updatedIntegrations);
-        updateLocalStorage(updatedIntegrations);
-        alert(`${integrations.find(i=>i.id===id)?.title} connected successfully! (simulation)`);
-    };
-
-    const handleDisconnect = (id: string) => {
-        const updatedIntegrations = integrations.map(int => 
-            int.id === id ? { ...int, connected: false } : int
-        );
-        setIntegrations(updatedIntegrations);
-        updateLocalStorage(updatedIntegrations);
-    };
-
+export const Integrations: React.FC<IntegrationsProps> = ({ jiraConfig, setJiraConfig }) => {
   return (
     <div>
         <h1 className="text-3xl font-bold text-text-primary">Integrations</h1>
         <p className="mt-2 text-text-secondary mb-8">Connect your healthcare systems and development tools to streamline testing workflows.</p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {integrations.map(item => 
+            {allIntegrations.map(item => 
                 <IntegrationCard 
                     key={item.id} 
                     integration={item}
-                    onConnect={handleConnect}
-                    onDisconnect={handleDisconnect}
+                    jiraConfig={jiraConfig}
+                    setJiraConfig={setJiraConfig}
                 />
             )}
         </div>
