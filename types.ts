@@ -26,7 +26,7 @@ export enum ProcessingState {
   ERROR = 'ERROR',
 }
 
-export type View = 'dashboard' | 'generate' | 'review' | 'processing' | 'test-cases' | 'integrations' | 'reports' | 'traceability' | 'settings' | 'help';
+export type View = 'dashboard' | 'generate' | 'review' | 'processing' | 'test-cases' | 'integrations' | 'reports' | 'traceability' | 'settings' | 'help' | 'improve' | 'duplicates' | 'impact-analysis';
 
 export interface AIAnalysis {
   summary: string;
@@ -36,7 +36,7 @@ export interface AIAnalysis {
 
 export interface RequirementsData {
   text: string;
-  source: 'Document Upload' | 'Manual Entry' | 'Jira';
+  source: 'Document Upload' | 'Manual Entry' | 'Jira' | 'API Spec';
   fileName?: string;
 }
 
@@ -47,13 +47,13 @@ export interface GenerationProgress {
 }
 
 export type ReportStatus = 'Completed' | 'Failed' | 'Processing' | 'Pending';
-// Fix: Removed unused ReportType
-// export type ReportType = 'Compliance' | 'Functional' | 'Security' | 'Validation';
+export type ReportType = 'Compliance Summary' | 'Priority Distribution' | 'Source Analysis' | 'Type Breakdown' | 'Performance Report' | 'Security Audit' | 'Coverage Report' | 'Executive Summary' | 'Custom';
+
 
 export interface Report {
   id: string;
   name: string;
-  subtitle: string;
+  subtitle: ReportType;
   tags: string[];
   date: string;
   scope: string;
@@ -61,7 +61,6 @@ export interface Report {
   testCaseCount: number;
   fileSize: string;
   fileType: 'PDF' | 'CSV';
-  // Fix: Added optional data property for report details and charts.
   data?: Record<string, number>;
 }
 
@@ -117,4 +116,47 @@ export interface JiraIssue {
             name: string;
         }
     };
+}
+
+export interface ChatMessage {
+  sender: 'user' | 'ai';
+  text?: string;
+  type?: 'text' | 'chart' | 'report_selection' | 'format_selection' | 'category_selection';
+  chartData?: Record<string, number>;
+  reports?: { id: string; name: string }[];
+  reportId?: string;
+  categories?: string[];
+}
+
+export interface DuplicatePairResponse {
+  id: string;
+  testCase1Id: string;
+  testCase2Id: string;
+  similarity: number;
+  rationale: string;
+}
+
+export interface DuplicatePairViewData {
+  id: string;
+  testCase1: TestCase;
+  testCase2: TestCase;
+  similarity: number;
+  rationale: string;
+}
+
+export type RecommendedPriority = 'P0' | 'P1' | 'P2';
+export type ImpactSuggestion = 'Run as-is' | 'Review recommended' | 'Update required' | 'Potentially obsolete';
+
+export interface ImpactAnalysisResponse {
+  testCaseId: string;
+  rationale: string;
+  recommendedPriority: RecommendedPriority;
+  suggestion: ImpactSuggestion;
+}
+
+export interface ImpactAnalysisResult {
+  testCase: TestCase;
+  rationale: string;
+  recommendedPriority: RecommendedPriority;
+  suggestion: ImpactSuggestion;
 }

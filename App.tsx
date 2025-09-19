@@ -10,9 +10,13 @@ import { Integrations } from './views/Integrations';
 import { Reports } from './views/Reports';
 import { Traceability } from './views/Traceability';
 import { Login } from './views/Login';
+import { Improve } from './views/Improve';
+import { Duplicates } from './views/Duplicates';
+import { ImpactAnalysis } from './views/ImpactAnalysis';
 import { extractRequirements, generateTestCases } from './services/geminiService';
 import { BulkUpdatePayload, TestCase, ProcessingState, View, Report, RequirementsData, GenerationProgress, Requirement, JiraConfig } from './types';
 import { extractTextFromFiles } from './utils/fileParser';
+import { AIAssistant } from './components/AIAssistant';
 
 const initialMockTestCases: TestCase[] = [
   {
@@ -25,7 +29,7 @@ const initialMockTestCases: TestCase[] = [
     status: 'Active',
     source: 'JIRA-4521',
     compliance: ['HIPAA', 'SOC2'],
-    steps: ['User enters valid credentials', 'User clicks login', 'User is redirected to dashboard'],
+    steps: ['Given the user is on the login page', 'When the user enters valid credentials for username and password', 'And the user clicks the login button', 'Then the user is redirected to their dashboard'],
     expectedOutcome: 'User should be successfully logged in and see their dashboard.',
     dateCreated: new Date('2024-05-20T10:00:00Z').toISOString(),
   },
@@ -39,7 +43,7 @@ const initialMockTestCases: TestCase[] = [
     status: 'Under Review',
     source: 'Azure-1234',
     compliance: ['HIPAA', 'GDPR'],
-    steps: ['Access database', 'Check encryption status of patient data table'],
+    steps: ['Given a system with patient data', 'When an administrator accesses the database directly', 'Then the patient data table should be encrypted using AES-256'],
     expectedOutcome: 'Data should be encrypted using AES-256.',
     dateCreated: new Date('2024-05-19T11:00:00Z').toISOString(),
   },
@@ -53,7 +57,7 @@ const initialMockTestCases: TestCase[] = [
     status: 'Completed',
     source: 'Manual Upload',
     compliance: ['DEA', 'FDA'],
-    steps: ['Send 100 concurrent requests to /api/prescriptions', 'Measure response time'],
+    steps: ['Given the system is under normal load', 'When 100 concurrent requests are sent to /api/prescriptions', 'Then the average response time should be under 200ms'],
     expectedOutcome: 'Average response time should be under 200ms.',
     dateCreated: new Date('2024-05-18T14:30:00Z').toISOString(),
   },
@@ -67,7 +71,7 @@ const initialMockTestCases: TestCase[] = [
     status: 'Active',
     source: 'JIRA-4522',
     compliance: ['CLIA', 'HIPAA'],
-    steps: ['Simulate a new lab result from partner system', 'Check for new result in patient chart'],
+    steps: ['Given a new lab result is available from a partner system', 'When the integration service runs', 'Then the new lab result appears in the correct patient chart within 5 minutes'],
     expectedOutcome: 'Lab result appears correctly within 5 minutes.',
     dateCreated: new Date('2024-05-17T09:00:00Z').toISOString(),
   },
@@ -81,7 +85,7 @@ const initialMockTestCases: TestCase[] = [
     status: 'Draft',
     source: 'TestRail-789',
     compliance: ['HIPAA', 'Emergency'],
-    steps: ['Clinician triggers emergency access', 'System logs the event', 'Access is granted'],
+    steps: ['Given a clinician is logged out', 'When the clinician triggers the emergency access protocol', 'Then the system grants temporary access and logs the event for auditing'],
     expectedOutcome: 'Access is granted and the event is logged for auditing.',
     dateCreated: new Date('2024-05-16T16:00:00Z').toISOString(),
   },
@@ -95,9 +99,23 @@ const initialMockTestCases: TestCase[] = [
     status: 'Completed',
     source: 'Azure-1235',
     compliance: ['FDA', 'ISO13485'],
-    steps: ['Connect device', 'Transfer data for 1 hour', 'Monitor for disconnects'],
+    steps: ['Given a partnered medical device is connected', 'When data is transferred continuously for 1 hour', 'Then the connection should remain stable with no data loss'],
     expectedOutcome: 'Connection remains stable with no data loss.',
     dateCreated: new Date('2024-05-15T12:00:00Z').toISOString(),
+  },
+   {
+    id: 'TC007',
+    title: 'Verify Patient Login',
+    description: 'This test checks if a patient can successfully log in using correct credentials.',
+    requirementId: 'REQ-AUTH-01',
+    tags: ['Functional'],
+    priority: 'Critical',
+    status: 'Active',
+    source: 'Manual Entry',
+    compliance: ['HIPAA'],
+    steps: ['Navigate to the login page.', 'Enter a valid username and password.', 'Click the "Sign In" button.'],
+    expectedOutcome: 'The user is successfully logged in and redirected to their personal dashboard page.',
+    dateCreated: new Date('2024-05-21T10:00:00Z').toISOString(),
   },
 ];
 
@@ -114,13 +132,12 @@ const initialMockReports: Report[] = [
         testCaseCount: 45,
         fileSize: '2.4 MB',
         fileType: 'PDF',
-        // Fix: Added data property for report details
         data: { 'HIPAA': 25, 'SOC2': 20 },
     },
     {
         id: 'REP-002',
         name: 'Weekly Test Generation Summary',
-        subtitle: 'Performance Report',
+        subtitle: 'Executive Summary',
         tags: ['HIPAA', 'FDA', 'GDPR'],
         date: '2024-01-19T00:00:00.000Z',
         scope: 'All Active Projects',
@@ -128,7 +145,6 @@ const initialMockReports: Report[] = [
         testCaseCount: 124,
         fileSize: '1.8 MB',
         fileType: 'CSV',
-        // Fix: Added data property for report details
         data: { 'HIPAA': 50, 'FDA': 40, 'GDPR': 34 },
     },
     {
@@ -142,7 +158,6 @@ const initialMockReports: Report[] = [
         testCaseCount: 32,
         fileSize: '890 KB',
         fileType: 'PDF',
-        // Fix: Added data property for report details
         data: { 'HIPAA': 18, 'SOC2': 14 },
     },
     {
@@ -156,7 +171,6 @@ const initialMockReports: Report[] = [
         testCaseCount: 67,
         fileSize: '3.1 MB',
         fileType: 'PDF',
-        // Fix: Added data property for report details
         data: { 'HL7': 30, 'FHIR': 25, 'HIPAA': 12 },
     },
     {
@@ -170,8 +184,46 @@ const initialMockReports: Report[] = [
         testCaseCount: 189,
         fileSize: 'Pending',
         fileType: 'PDF',
-        // Fix: Added data property for report details
         data: {},
+    },
+    {
+        id: 'REP-006',
+        name: 'Q2 Test Case Priority Breakdown',
+        subtitle: 'Priority Distribution',
+        tags: ['Quarterly', 'Analysis'],
+        date: new Date('2024-05-22T00:00:00.000Z').toISOString(),
+        scope: 'All Modules',
+        status: 'Completed',
+        testCaseCount: 124,
+        fileSize: '1.1 MB',
+        fileType: 'PDF',
+        data: { 'Critical': 3, 'High': 1, 'Medium': 2, 'Low': 0 },
+    },
+    {
+        id: 'REP-007',
+        name: 'Test Case Source Analysis',
+        subtitle: 'Source Analysis',
+        tags: ['Generation', 'Metrics'],
+        date: new Date('2024-05-21T00:00:00.000Z').toISOString(),
+        scope: 'All Generation Methods',
+        status: 'Completed',
+        testCaseCount: 7,
+        fileSize: '980 KB',
+        fileType: 'CSV',
+        data: { 'JIRA-4521': 1, 'Azure-1234': 1, 'Manual Upload': 1, 'JIRA-4522': 1, 'TestRail-789': 1, 'Azure-1235': 1, 'Manual Entry': 1 },
+    },
+    {
+        id: 'REP-008',
+        name: 'Primary Test Type Breakdown',
+        subtitle: 'Type Breakdown',
+        tags: ['Functional', 'API', 'Security'],
+        date: new Date('2024-05-20T00:00:00.000Z').toISOString(),
+        scope: 'All Test Types',
+        status: 'Completed',
+        testCaseCount: 7,
+        fileSize: '1.3 MB',
+        fileType: 'PDF',
+        data: { 'Functional': 3, 'Security': 1, 'Performance': 1, 'Integration': 2 },
     },
 ];
 
@@ -224,6 +276,7 @@ const App: React.FC = () => {
   const [requirementsData, setRequirementsData] = useState<RequirementsData | null>(null);
   const [generationProgress, setGenerationProgress] = useState<GenerationProgress | null>(null);
   const [selectedCasesForTraceability, setSelectedCasesForTraceability] = useState<TestCase[] | null>(null);
+  const [testCaseToImprove, setTestCaseToImprove] = useState<TestCase | null>(null);
 
   useEffect(() => {
     try {
@@ -387,9 +440,21 @@ const App: React.FC = () => {
           })
       );
   }, []);
+  
+  const handleUpdateTestCase = useCallback((updatedTestCase: TestCase) => {
+    setTestCases(prevTestCases => 
+      prevTestCases.map(tc => tc.id === updatedTestCase.id ? updatedTestCase : tc)
+    );
+  }, []);
 
   const clearTraceabilitySelection = useCallback(() => {
     setSelectedCasesForTraceability(null);
+  }, []);
+  
+  const handleImproveTestCase = useCallback((updatedTestCase: TestCase) => {
+    setTestCases(prev => prev.map(tc => tc.id === updatedTestCase.id ? updatedTestCase : tc));
+    setTestCaseToImprove(null); // Clear the state after update
+    setActiveView('test-cases'); // Go back to the list
   }, []);
 
   const renderView = () => {
@@ -429,13 +494,19 @@ const App: React.FC = () => {
                   testCases={testCases} 
                   setActiveView={setActiveView} 
                   onBulkUpdate={handleBulkUpdate}
+                  onUpdateTestCase={handleUpdateTestCase}
                   jiraConfig={jiraConfig}
+                  onImproveTestCase={(tc) => {
+                      setTestCaseToImprove(tc);
+                      setActiveView('improve');
+                  }}
                 />;
       case 'integrations':
         return <Integrations jiraConfig={jiraConfig} setJiraConfig={setJiraConfig} />;
       case 'reports':
         return <Reports 
                   testCases={testCases} 
+                  requirements={requirements}
                   reports={reports} 
                   setReports={setReports} 
                 />;
@@ -446,6 +517,16 @@ const App: React.FC = () => {
                   setActiveView={setActiveView}
                   selectedTestCases={selectedCasesForTraceability}
                   onClearSelection={clearTraceabilitySelection}/>;
+      case 'improve':
+        return <Improve 
+                  testCase={testCaseToImprove}
+                  onTestCaseImproved={handleImproveTestCase}
+                  setActiveView={setActiveView}
+                />;
+      case 'duplicates':
+        return <Duplicates testCases={testCases} setTestCases={setTestCases} />;
+      case 'impact-analysis':
+        return <ImpactAnalysis testCases={testCases} onUpdateTestCase={handleUpdateTestCase} />;
       default:
         return <Dashboard setActiveView={setActiveView} reports={reports}/>;
     }
@@ -474,6 +555,7 @@ const App: React.FC = () => {
           {renderView()}
         </main>
       </div>
+      <AIAssistant testCases={testCases} reports={reports} setActiveView={setActiveView} activeView={activeView} />
     </div>
   );
 };

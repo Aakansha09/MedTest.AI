@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { Report } from '../types';
+import { Report, ReportType } from '../types';
 import { useOnClickOutside } from '../hooks/useOnClickOutside';
 import { XIcon } from './icons/XIcon';
 import { PlusIcon } from './icons/PlusIcon';
 
 interface GenerateReportModalProps {
     onClose: () => void;
-    onCreateReport: (details: Omit<Report, 'id' | 'date' | 'status' | 'testCaseCount' | 'fileSize' | 'fileType'>) => void;
+    onCreateReport: (details: Omit<Report, 'id' | 'date' | 'status' | 'testCaseCount' | 'fileSize' | 'fileType' | 'data'>) => void;
 }
 
 export const GenerateReportModal: React.FC<GenerateReportModalProps> = ({ onClose, onCreateReport }) => {
@@ -14,19 +14,19 @@ export const GenerateReportModal: React.FC<GenerateReportModalProps> = ({ onClos
     useOnClickOutside(modalRef, onClose);
 
     const [name, setName] = useState('');
-    const [subtitle, setSubtitle] = useState('');
+    const [reportType, setReportType] = useState<ReportType>('Compliance Summary');
     const [scope, setScope] = useState('');
     const [tags, setTags] = useState('');
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!name || !subtitle || !scope) {
+        if (!name || !reportType || !scope) {
             alert('Please fill out all fields.');
             return;
         }
         onCreateReport({ 
             name, 
-            subtitle, 
+            subtitle: reportType, 
             scope, 
             tags: tags.split(',').map(t => t.trim()).filter(Boolean) 
         });
@@ -57,16 +57,20 @@ export const GenerateReportModal: React.FC<GenerateReportModalProps> = ({ onClos
                             />
                         </div>
                         <div>
-                            <label htmlFor="reportSubtitle" className="block text-sm font-medium text-text-primary mb-1">Report Type / Subtitle</label>
-                             <input
-                                type="text"
-                                id="reportSubtitle"
-                                value={subtitle}
-                                onChange={(e) => setSubtitle(e.target.value)}
-                                placeholder="e.g., Compliance Summary"
+                            <label htmlFor="reportType" className="block text-sm font-medium text-text-primary mb-1">Report Type</label>
+                             <select
+                                id="reportType"
+                                value={reportType}
+                                onChange={(e) => setReportType(e.target.value as ReportType)}
                                 className="bg-background border border-border-color text-text-primary text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
                                 required
-                            />
+                            >
+                                <option value="Compliance Summary">Compliance Summary</option>
+                                <option value="Priority Distribution">Priority Distribution</option>
+                                <option value="Source Analysis">Source Analysis</option>
+                                <option value="Type Breakdown">Type Breakdown</option>
+                                <option value="Custom">Custom Report</option>
+                            </select>
                         </div>
                          <div>
                             <label htmlFor="reportTags" className="block text-sm font-medium text-text-primary mb-1">Compliance Tags (comma-separated)</label>

@@ -13,11 +13,18 @@ import { exportAsCSV, exportAsJSON } from '../utils/exportUtils';
 import { JiraIcon } from '../components/icons/JiraIcon';
 import { AzureDevOpsIcon } from '../components/icons/AzureDevOpsIcon';
 import { PushToJiraModal } from '../components/PushToJiraModal';
+import { TestCaseDetailModal } from '../components/TestCaseDetailModal';
+import { AutomateTestCaseModal } from '../components/AutomateTestCaseModal';
+import { EyeIcon } from '../components/icons/EyeIcon';
+import { CodeIcon } from '../components/icons/CodeIcon';
+import { MagicWandIcon } from '../components/icons/MagicWandIcon';
 
 interface GeneratedTestCasesProps {
   testCases: TestCase[];
   setActiveView: (view: View) => void;
   onBulkUpdate: (ids: Set<string>, payload: BulkUpdatePayload) => void;
+  onUpdateTestCase: (testCase: TestCase) => void;
+  onImproveTestCase: (testCase: TestCase) => void;
   jiraConfig: JiraConfig | null;
 }
 
@@ -44,10 +51,12 @@ const typePillStyles: Record<string, string> = {
     'Security': 'bg-red-100 text-red-700 ring-1 ring-inset ring-red-200',
     'Performance': 'bg-orange-100 text-orange-700 ring-1 ring-inset ring-orange-200',
     'Integration': 'bg-purple-100 text-purple-700 ring-1 ring-inset ring-purple-200',
+    'API': 'bg-indigo-100 text-indigo-700 ring-1 ring-inset ring-indigo-200',
+    'Boundary': 'bg-rose-100 text-rose-700 ring-1 ring-inset ring-rose-200',
     'Default': 'bg-gray-100 text-gray-700 ring-1 ring-inset ring-gray-200'
 };
 
-export const GeneratedTestCases: React.FC<GeneratedTestCasesProps> = ({ testCases, setActiveView, onBulkUpdate, jiraConfig }) => {
+export const GeneratedTestCases: React.FC<GeneratedTestCasesProps> = ({ testCases, setActiveView, onBulkUpdate, onUpdateTestCase, onImproveTestCase, jiraConfig }) => {
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<TestCaseStatus | 'All Status'>('All Status');
@@ -63,6 +72,11 @@ export const GeneratedTestCases: React.FC<GeneratedTestCasesProps> = ({ testCase
     const exportRef = useRef<HTMLDivElement>(null);
     useOnClickOutside(exportRef, () => setIsExportOpen(false));
 
+    const [viewingTestCase, setViewingTestCase] = useState<TestCase | null>(null);
+    const [automatingTestCase, setAutomatingTestCase] = useState<TestCase | null>(null);
+    const [activeActionMenu, setActiveActionMenu] = useState<string | null>(null);
+    const actionMenuRef = useRef<HTMLDivElement>(null);
+    useOnClickOutside(actionMenuRef, () => setActiveActionMenu(null));
 
     const allTypes = useMemo(() => ['All Types', ...Array.from(new Set(testCases.flatMap(tc => tc.tags)))], [testCases]);
 
@@ -162,6 +176,22 @@ export const GeneratedTestCases: React.FC<GeneratedTestCasesProps> = ({ testCase
                 setIsPushToJiraModalOpen(false);
                 setSelectedIds(new Set());
             }}
+        />
+    )}
+    {viewingTestCase && (
+        <TestCaseDetailModal 
+            testCase={viewingTestCase}
+            onClose={() => setViewingTestCase(null)}
+            onSave={(updatedTC) => {
+                onUpdateTestCase(updatedTC);
+                setViewingTestCase(null);
+            }}
+        />
+    )}
+    {automatingTestCase && (
+        <AutomateTestCaseModal
+            testCase={automatingTestCase}
+            onClose={() => setAutomatingTestCase(null)}
         />
     )}
     <div className="space-y-6">
@@ -287,7 +317,41 @@ export const GeneratedTestCases: React.FC<GeneratedTestCasesProps> = ({ testCase
                                     </div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <button className="text-gray-400 hover:text-gray-600"><DotsHorizontalIcon className="h-5 w-5"/></button>
+                                    <div className="relative inline-block text-left" ref={activeActionMenu === tc.id ? actionMenuRef : null}>
+                                        <button onClick={() => setActiveActionMenu(activeActionMenu === tc.id ? null : tc.id)} className="text-gray-400 hover:text-gray-600 rounded-full p-1">
+                                            <DotsHorizontalIcon className="h-5 w-5"/>
+                                        </button>
+                                        {activeActionMenu === tc.id && (
+                                            <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-surface ring-1 ring-black ring-opacity-5 z-20">
+                                            <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
+                                                <button
+                                                  onClick={() => { setViewingTestCase(tc); setActiveActionMenu(null); }}
+                                                  className="w-full text-left flex items-center px-4 py-2 text-sm text-text-primary hover:bg-gray-100"
+                                                  role="menuitem"
+                                                >
+                                                  <EyeIcon className="w-5 h-5 mr-3 text-text-secondary" />
+                                                  View / Edit
+                                                </button>
+                                                <button
+                                                  onClick={() => { setAutomatingTestCase(tc); setActiveActionMenu(null); }}
+                                                  className="w-full text-left flex items-center px-4 py-2 text-sm text-text-primary hover:bg-gray-100"
+                                                  role="menuitem"
+                                                >
+                                                  <CodeIcon className="w-5 h-5 mr-3 text-text-secondary" />
+                                                  Automate
+                                                </button>
+                                                <button
+                                                  onClick={() => { onImproveTestCase(tc); setActiveActionMenu(null); }}
+                                                  className="w-full text-left flex items-center px-4 py-2 text-sm text-text-primary hover:bg-gray-100"
+                                                  role="menuitem"
+                                                >
+                                                  <MagicWandIcon className="w-5 h-5 mr-3 text-text-secondary" />
+                                                  Improve
+                                                </button>
+                                            </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 </td>
                             </tr>
                         ))}

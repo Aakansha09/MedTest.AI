@@ -9,6 +9,8 @@ import { PencilIcon } from '../components/icons/PencilIcon';
 import { StethoscopeIcon } from '../components/icons/StethoscopeIcon';
 import { UsersIcon } from '../components/icons/UsersIcon';
 import { RecentProjects } from '../components/RecentProjects';
+import { CrosshairsIcon } from '../components/icons/CrosshairsIcon';
+import { MagicWandIcon } from '../components/icons/MagicWandIcon';
 
 
 interface DashboardProps {
@@ -37,7 +39,6 @@ const StatCard: React.FC<{
         </div>
     </div>
 );
-
 
 export const Dashboard: React.FC<DashboardProps> = ({ setActiveView, reports }) => {
   return (
@@ -80,28 +81,56 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveView, reports }) 
             />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-            <div className="lg:col-span-2 bg-surface border border-border-color rounded-lg p-6">
-                <h2 className="text-lg font-semibold text-text-primary mb-1">Quick Actions</h2>
-                <p className="text-sm text-text-secondary mb-4">Start your healthcare testing workflow.</p>
-                <div className="space-y-3">
-                    <button onClick={() => setActiveView('generate')} className="w-full flex items-center justify-center p-4 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors">
-                        <PlusIcon className="w-5 h-5 mr-3"/>
-                        <span className="text-base font-medium">Generate Test Cases</span>
-                    </button>
-                     <button onClick={() => alert('Import from Epic not implemented.')} className="w-full flex items-center justify-center p-4 bg-gray-100 text-text-primary rounded-lg hover:bg-gray-200 transition-colors">
-                        <DocumentIcon className="w-5 h-5 mr-3"/>
-                        <span className="text-base font-medium">Import from Epic</span>
-                    </button>
-                    <button onClick={() => setActiveView('generate')} className="w-full flex items-center justify-center p-4 bg-gray-100 text-text-primary rounded-lg hover:bg-gray-200 transition-colors">
-                        <UploadIcon className="w-5 h-5 mr-3"/>
-                        <span className="text-base font-medium">Upload Requirements</span>
-                    </button>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+             {/* Column 1: Impact Analysis Feature Card */}
+            <div className="bg-surface border border-border-color rounded-xl p-6 flex flex-col shadow-sm">
+                <div className="flex items-center gap-3">
+                     <div className="bg-primary-light p-3 rounded-lg">
+                        <CrosshairsIcon className="w-6 h-6 text-primary"/>
+                    </div>
+                    <h2 className="text-xl font-bold text-text-primary">Test Impact Analysis</h2>
                 </div>
+                 <p className="mt-3 text-text-secondary">
+                    Automatically identify which tests are impacted by your latest code changes. Our AI suggests a prioritized test plan to save you time.
+                </p>
+                 <div className="mt-4 w-full p-3 bg-background rounded-lg flex items-center gap-3 border border-border-color">
+                    <div className="bg-primary-light p-2 rounded-lg">
+                        <MagicWandIcon className="w-5 h-5 text-primary"/>
+                    </div>
+                    <div>
+                        <h3 className="font-semibold text-text-primary text-sm">Now with Auto-Heal!</h3>
+                        <p className="text-xs text-text-secondary">Let AI automatically fix broken tests for you.</p>
+                    </div>
+                </div>
+                <button 
+                    onClick={() => setActiveView('impact-analysis')}
+                    className="mt-6 w-full bg-primary text-white font-semibold py-2.5 rounded-lg hover:bg-primary-hover transition-colors"
+                >
+                    Start Analysis
+                </button>
             </div>
 
-            <div className="lg:col-span-3">
-              <RecentProjects reports={reports} />
+            {/* Column 2: Quick Actions and Recent Projects */}
+            <div className="flex flex-col gap-8">
+                <div className="bg-surface border border-border-color rounded-lg p-6">
+                    <h2 className="text-lg font-semibold text-text-primary mb-1">Quick Actions</h2>
+                    <p className="text-sm text-text-secondary mb-4">Start your testing workflow.</p>
+                    <div className="space-y-3">
+                        <button onClick={() => setActiveView('generate')} className="w-full flex items-center justify-center p-4 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors">
+                            <PlusIcon className="w-5 h-5 mr-3"/>
+                            <span className="text-base font-medium">Generate Test Cases</span>
+                        </button>
+                         <button onClick={() => alert('Import from Epic not implemented.')} className="w-full flex items-center justify-center p-4 bg-gray-100 text-text-primary rounded-lg hover:bg-gray-200 transition-colors">
+                            <DocumentIcon className="w-5 h-5 mr-3"/>
+                            <span className="text-base font-medium">Import from Epic</span>
+                        </button>
+                        <button onClick={() => setActiveView('generate')} className="w-full flex items-center justify-center p-4 bg-gray-100 text-text-primary rounded-lg hover:bg-gray-200 transition-colors">
+                            <UploadIcon className="w-5 h-5 mr-3"/>
+                            <span className="text-base font-medium">Upload Requirements</span>
+                        </button>
+                    </div>
+                </div>
+                <RecentProjects reports={reports} />
             </div>
         </div>
     </div>

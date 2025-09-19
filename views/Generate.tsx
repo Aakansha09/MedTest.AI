@@ -7,8 +7,11 @@ import { UserIcon } from '../components/icons/UserIcon';
 import { JiraIcon } from '../components/icons/JiraIcon';
 import { JiraImportTab } from '../components/JiraImportTab';
 import { FileUpload } from '../components/FileUpload';
+import { UploadIcon } from '../components/icons/UploadIcon';
+import { PencilIcon } from '../components/icons/PencilIcon';
+import { ApiIcon } from '../components/icons/ApiIcon';
 
-type Tab = 'upload' | 'jira' | 'manual';
+type Tab = 'upload' | 'jira' | 'manual' | 'api';
 
 interface GenerateProps {
     onStartGeneration: (data: { files?: File[], text?: string, source: RequirementsData['source'] }) => void;
@@ -18,14 +21,15 @@ interface GenerateProps {
     setActiveView: (view: View) => void;
 }
 
-const TabButton: React.FC<{ active: boolean; onClick: () => void; children: React.ReactNode; }> = ({ active, onClick, children }) => (
+const TabButton: React.FC<{ active: boolean; onClick: () => void; children: React.ReactNode; icon: React.ReactNode; }> = ({ active, onClick, children, icon }) => (
     <button
         onClick={onClick}
-        className={`px-4 sm:px-6 py-3 text-sm font-semibold transition-colors duration-200
+        className={`flex items-center gap-2 px-4 sm:px-6 py-3 text-sm font-semibold transition-colors duration-200
             ${active 
                 ? 'text-primary border-b-2 border-primary' 
                 : 'text-text-secondary hover:text-text-primary'}`}
     >
+        {icon}
         {children}
     </button>
 );
@@ -39,10 +43,24 @@ Acceptance Criteria:
 - User is redirected to dashboard on successful login
 - Error message shown for invalid credentials`;
 
+const exampleApiSpec = `openapi: 3.0.0
+info:
+  title: Simple Patient API
+  version: 1.0.0
+paths:
+  /patients:
+    get:
+      summary: Returns a list of patients.
+      responses:
+        '200':
+          description: A JSON array of patient objects.
+`;
+
 export const Generate: React.FC<GenerateProps> = ({ onStartGeneration, processingState, error, jiraConfig, setActiveView }) => {
     const [activeTab, setActiveTab] = useState<Tab>('upload');
     const [manualText, setManualText] = useState('');
     const [jiraText, setJiraText] = useState('');
+    const [apiSpecText, setApiSpecText] = useState('');
     const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
     const isProcessing = processingState !== ProcessingState.IDLE && processingState !== ProcessingState.COMPLETE;
     
@@ -54,13 +72,16 @@ export const Generate: React.FC<GenerateProps> = ({ onStartGeneration, processin
             onStartGeneration({ text: manualText, source: 'Manual Entry' });
         } else if (activeTab === 'jira' && jiraText.trim()) {
             onStartGeneration({ text: jiraText, source: 'Jira' });
+        } else if (activeTab === 'api' && apiSpecText.trim()) {
+            onStartGeneration({ text: apiSpecText, source: 'API Spec' });
         }
     };
 
     const isGenerateDisabled = isProcessing ||
         (activeTab === 'upload' && selectedFiles.length === 0) ||
         (activeTab === 'manual' && !manualText.trim()) ||
-        (activeTab === 'jira' && !jiraText.trim());
+        (activeTab === 'jira' && !jiraText.trim()) ||
+        (activeTab === 'api' && !apiSpecText.trim());
 
     const renderTabContent = () => {
         switch (activeTab) {
@@ -104,6 +125,21 @@ export const Generate: React.FC<GenerateProps> = ({ onStartGeneration, processin
                         />
                     </div>
                 );
+            case 'api':
+                return (
+                    <div className="p-2">
+                        <h3 className="text-lg font-semibold text-text-primary">Paste API Specification</h3>
+                        <p className="mt-1 text-sm text-text-secondary">Paste your OpenAPI (v3) or Swagger (v2) specification in JSON or YAML format.</p>
+                        <textarea
+                            value={apiSpecText}
+                            onChange={(e) => setApiSpecText(e.target.value)}
+                            rows={10}
+                            disabled={isProcessing}
+                            className="mt-4 bg-background border border-border-color text-text-primary text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-3.5 disabled:opacity-50 font-mono"
+                            placeholder={exampleApiSpec}
+                        />
+                    </div>
+                );
         }
     };
     
@@ -137,10 +173,11 @@ export const Generate: React.FC<GenerateProps> = ({ onStartGeneration, processin
                     </div>
 
                     <div className="mt-8 border-b border-border-color">
-                        <nav className="-mb-px flex justify-center space-x-4 sm:space-x-8" aria-label="Tabs">
-                            <TabButton active={activeTab === 'upload'} onClick={() => setActiveTab('upload')}>Upload Document</TabButton>
-                            <TabButton active={activeTab === 'jira'} onClick={() => setActiveTab('jira')}>From Jira</TabButton>
-                            <TabButton active={activeTab === 'manual'} onClick={() => setActiveTab('manual')}>Manual Entry</TabButton>
+                        <nav className="-mb-px flex justify-center space-x-2 sm:space-x-8" aria-label="Tabs">
+                            <TabButton active={activeTab === 'upload'} onClick={() => setActiveTab('upload')} icon={<UploadIcon className="w-5 h-5"/>}>Upload Document</TabButton>
+                            <TabButton active={activeTab === 'jira'} onClick={() => setActiveTab('jira')} icon={<JiraIcon className="w-5 h-5"/>}>From Jira</TabButton>
+                            <TabButton active={activeTab === 'manual'} onClick={() => setActiveTab('manual')} icon={<PencilIcon className="w-5 h-5"/>}>Manual Entry</TabButton>
+                             <TabButton active={activeTab === 'api'} onClick={() => setActiveTab('api')} icon={<ApiIcon className="w-5 h-5"/>}>From API Spec</TabButton>
                         </nav>
                     </div>
 

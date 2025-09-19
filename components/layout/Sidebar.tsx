@@ -13,6 +13,9 @@ import { PlusIcon } from '../icons/PlusIcon';
 import { PencilIcon } from '../icons/PencilIcon';
 import { LoaderIcon } from '../icons/LoaderIcon';
 import { LogoIcon } from '../icons/LogoIcon';
+import { MagicWandIcon } from '../icons/MagicWandIcon';
+import { CopyIcon } from '../icons/CopyIcon';
+import { CrosshairsIcon } from '../icons/CrosshairsIcon';
 
 interface NavItemProps {
   view: View;
@@ -115,18 +118,14 @@ export const Sidebar: React.FC<{
           <NavItem view="integrations" activeView={activeView} setActiveView={setActiveView} isCollapsed={isCollapsed} icon={<IntegrationsIcon className="w-6 h-6"/>} label="Integrations" badge={3}/>
           <NavItem view="reports" activeView={activeView} setActiveView={setActiveView} isCollapsed={isCollapsed} icon={<ReportsIcon className="w-6 h-6"/>} label="Reports" />
           <NavItem view="traceability" activeView={activeView} setActiveView={setActiveView} isCollapsed={isCollapsed} icon={<TraceabilityIcon className="w-6 h-6"/>} label="Traceability" />
+        
+          <div className="pt-4 mt-4 border-t border-border-color">
+            {!isCollapsed && <div className="px-3 py-2 text-xs font-semibold text-text-secondary uppercase tracking-wider">Tools</div>}
+            <NavItem view="impact-analysis" activeView={activeView} setActiveView={setActiveView} isCollapsed={isCollapsed} icon={<CrosshairsIcon className="w-6 h-6"/>} label="Test Impact Analysis" />
+            <NavItem view="improve" activeView={activeView} setActiveView={setActiveView} isCollapsed={isCollapsed} icon={<MagicWandIcon className="w-6 h-6"/>} label="Improve Test Case" />
+            <NavItem view="duplicates" activeView={activeView} setActiveView={setActiveView} isCollapsed={isCollapsed} icon={<CopyIcon className="w-6 h-6"/>} label="Detect Duplicates" />
+          </div>
         </ul>
-
-        {!isCollapsed && (
-             <div className="p-4 mb-4 bg-gray-50 rounded-lg">
-                <h3 className="text-sm font-semibold text-text-primary">Quick Stats</h3>
-                <div className="mt-3 space-y-2 text-sm text-text-secondary">
-                    <div className="flex justify-between"><span>Active Projects</span><span className="font-semibold text-text-primary">8</span></div>
-                    <div className="flex justify-between"><span>Test Cases</span><span className="font-semibold text-text-primary">124</span></div>
-                    <div className="flex justify-between"><span>Coverage</span><span className="font-semibold text-text-primary">94%</span></div>
-                </div>
-            </div>
-        )}
 
         <div className="pt-2">
             <ul className="pt-4 mt-4 space-y-1 border-t border-border-color">

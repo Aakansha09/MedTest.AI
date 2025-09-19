@@ -5,7 +5,7 @@ const escapeCSVField = (field: string | string[]): string => {
   return `"${value.replace(/"/g, '""')}"`;
 };
 
-export const exportAsCSV = (testCases: TestCase[]): void => {
+export const exportAsCSV = (testCases: TestCase[], filename: string = 'test-cases'): void => {
   const headers = ['id', 'title', 'description', 'requirementId', 'priority', 'status', 'tags', 'source', 'compliance', 'steps', 'expectedOutcome'];
   
   const rows = testCases.map(tc => {
@@ -27,13 +27,13 @@ export const exportAsCSV = (testCases: TestCase[]): void => {
 
   const csvContent = [headers.join(','), ...rows].join('\n');
   
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-t;' });
   const link = document.createElement('a');
   if (link.href) {
     URL.revokeObjectURL(link.href);
   }
   link.href = URL.createObjectURL(blob);
-  link.download = 'test-cases.csv';
+  link.download = `${filename}.csv`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -64,6 +64,64 @@ export const exportReportDataAsJSON = (report: Report): void => {
   link.click();
   document.body.removeChild(link);
 }
+
+export const exportReportDataAsCSV = (report: Report): void => {
+  const data = report.data || {};
+  if (Object.keys(data).length === 0) {
+    console.warn("Report data is empty, exporting an empty CSV.");
+  }
+  const headers = ['Category', 'Value'];
+  const rows = Object.entries(data).map(([key, value]) => 
+    [escapeCSVField(key), escapeCSVField(String(value))].join(',')
+  );
+  
+  const csvContent = [headers.join(','), ...rows].join('\n');
+  
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `${report.name.replace(/\s+/g, '_')}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+export const exportReportDataAsPDF = (report: Report): void => {
+  const data = report.data || {};
+  const title = report.name;
+  const date = `Generated on: ${new Date(report.date).toLocaleString()}`;
+  const scope = `Scope: ${report.scope}`;
+  
+  let content = `
+    REPORT: ${title}\n
+    ${'='.repeat(title.length + 8)}\n\n
+    ${date}\n
+    ${scope}\n
+    \n
+    ----------------------------------------\n
+    COMPLIANCE SUMMARY DATA\n
+    ----------------------------------------\n
+  `;
+
+  if (Object.keys(data).length > 0) {
+    Object.entries(data).forEach(([key, value]) => {
+      content += `${key.padEnd(25)}: ${value}\n`;
+    });
+  } else {
+    content += "\nNo data available for this report.\n";
+  }
+
+  content += `\n\n--- End of Report ---`;
+
+  const blob = new Blob([content], { type: 'text/plain;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  // Note: Saving a text file as .pdf. A real implementation would use a library like jsPDF.
+  link.download = `${report.name.replace(/\s+/g, '_')}.pdf`; 
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
 
 export const exportTraceabilityMatrixCSV = (items: RequirementTraceability[]): void => {
   const headers = ['Requirement ID', 'Description', 'Status', 'Linked Test Case IDs'];

@@ -6,9 +6,12 @@ interface LoginProps {
   onLogin: () => void;
 }
 
-const FeatureCard: React.FC<{ title: string; description: string, icon?: React.ReactNode }> = ({ title, description }) => (
-    <div className="bg-surface p-6 rounded-xl border border-border-color transition-shadow hover:shadow-md">
-        <h3 className="font-semibold text-text-primary">{title}</h3>
+const FeatureCard: React.FC<{ title: string; description: string, icon?: React.ReactNode, isNew?: boolean }> = ({ title, description, isNew }) => (
+    <div className="bg-surface p-6 rounded-xl border border-border-color transition-shadow hover:shadow-md h-full relative">
+        {isNew && (
+            <span className="absolute top-4 right-4 bg-primary text-white text-xs font-bold px-2.5 py-1 rounded-full animate-pulse">NEW</span>
+        )}
+        <h3 className="font-semibold text-text-primary pr-10">{title}</h3>
         <p className="text-sm text-text-secondary mt-2">{description}</p>
     </div>
 );
@@ -30,10 +33,23 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <FeatureCard title="AI-Powered Generation" description="Generate comprehensive test cases from requirements instantly using advanced AI." />
-            <FeatureCard title="Built-in Traceability" description="Automatic traceability matrix linking requirements to test cases." />
-            <FeatureCard title="Jira & Azure Integration" description="Seamlessly integrates with Jira, Azure DevOps, and TestRail." />
-            <FeatureCard title="Export & Reports" description="Export to CSV, PDF reports, or upload directly to your tools." />
+             <FeatureCard 
+                title="Intelligent Test Suite Automation"
+                description="Go beyond generation. Utilize AI for test impact analysis, auto-healing of broken tests, and duplicate detection."
+                isNew={true}
+              />
+              <FeatureCard 
+                title="Insightful Reporting Dashboard"
+                description="Visualize test coverage, priority distribution, and compliance adherence with our new comprehensive reporting tools."
+              />
+              <FeatureCard 
+                title="Connect Your Workflow"
+                description="Import requirements seamlessly from documents, Jira, manual entry, or even OpenAPI/Swagger API specifications."
+              />
+              <FeatureCard 
+                title="Ensure Compliance & Coverage"
+                description="Maintain a live traceability matrix linking every requirement to test cases, ensuring 100% audit readiness."
+              />
           </div>
         </div>
 

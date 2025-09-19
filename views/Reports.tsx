@@ -1,24 +1,29 @@
 import React, { useMemo, useState } from 'react';
-import { TestCase, Report, ReportStatus, TestCaseStatus } from '../types';
+import { TestCase, Report, ReportStatus, Requirement } from '../types';
 import { DonutChart } from '../components/DonutChart';
-import { TestCasesIcon } from '../components/icons/TestCasesIcon';
-import { CheckCircleIcon } from '../components/icons/CheckCircleIcon';
-import { CalendarIcon } from '../components/icons/CalendarIcon';
+import { BarChart } from '../components/BarChart';
 import { SearchIcon } from '../components/icons/SearchIcon';
 import { PlusIcon } from '../components/icons/PlusIcon';
 import { DownloadIcon } from '../components/icons/DownloadIcon';
 import { GenerateReportModal } from '../components/GenerateReportModal';
 import { ShieldCheckIcon } from '../components/icons/ShieldCheckIcon';
-import { ClockIcon } from '../components/icons/ClockIcon';
+import { CalendarIcon } from '../components/icons/CalendarIcon';
 import { FlaskIcon } from '../components/icons/FlaskIcon';
 import { BarChartIcon } from '../components/icons/BarChartIcon';
 import { EyeIcon } from '../components/icons/EyeIcon';
 import { RefreshIcon } from '../components/icons/RefreshIcon';
 import { ReportDetailModal } from '../components/ReportDetailModal';
+import { FileTextIcon } from '../components/icons/FileTextIcon';
+import { WarningIcon } from '../components/icons/WarningIcon';
+import { ChartPieIcon } from '../components/icons/ChartPieIcon';
+import { TagIcon } from '../components/icons/TagIcon';
+// FIX: Import CheckCircleIcon
+import { CheckCircleIcon } from '../components/icons/CheckCircleIcon';
 
 
 interface ReportsProps {
     testCases: TestCase[];
+    requirements: Requirement[];
     reports: Report[];
     setReports: React.Dispatch<React.SetStateAction<Report[]>>;
 }
@@ -62,15 +67,8 @@ const tagColors: Record<string, string> = {
   'Default': 'bg-gray-100 text-gray-800'
 };
 
-const statusColors: Record<string, {dot: string, text: string}> = {
-    Completed: { dot: 'bg-green-500', text: 'text-green-600'},
-    Approved: { dot: 'bg-blue-500', text: 'text-blue-600'},
-    Pending: { dot: 'bg-amber-500', text: 'text-amber-600'},
-    "Re-run": { dot: 'bg-orange-500', text: 'text-orange-600'},
-};
 
-
-export const Reports: React.FC<ReportsProps> = ({ testCases, reports, setReports }) => {
+export const Reports: React.FC<ReportsProps> = ({ testCases, requirements, reports, setReports }) => {
     const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
     const [selectedReport, setSelectedReport] = useState<Report | null>(null);
     
@@ -104,32 +102,14 @@ export const Reports: React.FC<ReportsProps> = ({ testCases, reports, setReports
 
 
     const stats = useMemo(() => {
-        const completed = testCases.filter(tc => tc.status === 'Completed').length;
-        const uniqueStandards = new Set(testCases.flatMap(tc => tc.compliance));
         return {
-            total: testCases.length,
-            completed,
-            standards: uniqueStandards.size,
+            totalRequirements: requirements.length,
+            criticalTests: testCases.filter(tc => tc.priority === 'Critical').length,
+            totalTestCases: testCases.length,
+            uniqueStandards: new Set(testCases.flatMap(tc => tc.compliance)).size,
         }
-    }, [testCases]);
+    }, [testCases, requirements]);
     
-    const testCaseStatusOverview = useMemo(() => {
-        const data: Record<string, number> = { Completed: 0, Approved: 0, Pending: 0, "Re-run": 0 };
-        testCases.forEach(tc => {
-            switch(tc.status) {
-                case 'Completed': data.Completed++; break;
-                case 'Active': data.Approved++; break; // Mapping Active to Approved
-                case 'Pending':
-                case 'Under Review': 
-                case 'Draft':
-                    data.Pending++; break;
-            }
-        });
-        // Mock re-run for visuals
-        data["Re-run"] = Math.floor(testCases.length / 20);
-        return data;
-    }, [testCases]);
-
     const complianceData = useMemo(() => {
         const distribution = testCases.reduce((acc, tc) => {
             if (tc.compliance.length === 0) {
@@ -152,27 +132,92 @@ export const Reports: React.FC<ReportsProps> = ({ testCases, reports, setReports
         }));
     }, [testCases]);
 
-    const lastGeneratedDate = useMemo(() => {
-        if (reports.length === 0) return 'N/A';
-        const sortedReports = [...reports].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        return new Date(sortedReports[0].date).toLocaleDateString('en-US', {
-            month: 'long',
-            day: 'numeric',
-            year: 'numeric'
+    const priorityDistribution = useMemo(() => {
+        const data: Record<string, number> = { 'Critical': 0, 'High': 0, 'Medium': 0, 'Low': 0 };
+        testCases.forEach(tc => {
+            data[tc.priority] = (data[tc.priority] || 0) + 1;
         });
-    }, [reports]);
+        return data;
+    }, [testCases]);
 
-    const handleCreateReport = (reportDetails: Omit<Report, 'id' | 'date' | 'status' | 'testCaseCount' | 'fileSize' | 'fileType'>) => {
+    const sourceDistribution = useMemo(() => {
+        const data: Record<string, number> = {};
+        testCases.forEach(tc => {
+            const sourceKey = tc.source.split('-')[0]; // Group JIRA-123 and JIRA-456 as 'JIRA'
+            data[sourceKey] = (data[sourceKey] || 0) + 1;
+        });
+        const SOURCE_COLORS: Record<string, string> = {
+            'JIRA': '#0052CC',
+            'Azure': '#0078D4',
+            'TestRail': '#7D3F98',
+            'Manual Upload': '#172B4D',
+            'Manual Entry': '#4C6FFF',
+            'API Spec': '#FFAB00',
+            'Other': '#8993A4',
+        };
+        return Object.entries(data).map(([name, value]) => ({
+            name, value, color: SOURCE_COLORS[name] || SOURCE_COLORS['Other']
+        }));
+    }, [testCases]);
+
+    const typeDistribution = useMemo(() => {
+        const data: Record<string, number> = {};
+        testCases.forEach(tc => {
+            const type = tc.tags[0] || 'Uncategorized';
+            data[type] = (data[type] || 0) + 1;
+        });
+        return data;
+    }, [testCases]);
+
+
+    const handleCreateReport = (reportDetails: Omit<Report, 'id' | 'date' | 'status' | 'testCaseCount' | 'fileSize' | 'fileType' | 'data'>) => {
+        let reportData: Record<string, number> = {};
+        const reportType = reportDetails.subtitle;
+        
+        switch(reportType) {
+            case 'Compliance Summary':
+                testCases.forEach(tc => {
+                    tc.compliance.forEach(c => reportData[c] = (reportData[c] || 0) + 1);
+                });
+                break;
+            case 'Priority Distribution':
+                testCases.forEach(tc => {
+                    reportData[tc.priority] = (reportData[tc.priority] || 0) + 1;
+                });
+                break;
+            case 'Source Analysis':
+                 testCases.forEach(tc => {
+                    const sourceKey = tc.source.split('-')[0];
+                    reportData[sourceKey] = (reportData[sourceKey] || 0) + 1;
+                });
+                break;
+            case 'Type Breakdown':
+                testCases.forEach(tc => {
+                    const type = tc.tags[0] || 'Uncategorized';
+                    reportData[type] = (reportData[type] || 0) + 1;
+                });
+                break;
+            default:
+                break;
+        }
+
         const newReport: Report = {
             ...reportDetails,
             id: `REP-${String(reports.length + 1).padStart(3, '0')}`,
             date: new Date().toISOString(),
             status: 'Processing',
-            testCaseCount: 0,
+            testCaseCount: testCases.length,
             fileSize: 'Pending',
             fileType: 'PDF',
+            data: reportData,
         };
+
         setReports(prev => [newReport, ...prev]);
+        
+        // Simulate processing time
+        setTimeout(() => {
+            setReports(prev => prev.map(r => r.id === newReport.id ? {...r, status: 'Completed', fileSize: `${(Math.random() * 2 + 0.5).toFixed(1)} MB`} : r));
+        }, 2000);
     };
 
   return (
@@ -182,8 +227,8 @@ export const Reports: React.FC<ReportsProps> = ({ testCases, reports, setReports
     <div className="space-y-8">
         <div className="flex flex-wrap justify-between items-start gap-4">
             <div>
-                <h1 className="text-3xl font-bold text-text-primary">Reports</h1>
-                <p className="mt-2 text-text-secondary">Track and analyze your test case generation activities.</p>
+                <h1 className="text-3xl font-bold text-text-primary">Reports Dashboard</h1>
+                <p className="mt-2 text-text-secondary">Track and analyze your test case generation and compliance activities.</p>
             </div>
              <button onClick={() => setIsGenerateModalOpen(true)} className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
                 <PlusIcon className="w-5 h-5 mr-2" />
@@ -192,17 +237,17 @@ export const Reports: React.FC<ReportsProps> = ({ testCases, reports, setReports
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <StatCard title="Total Test Cases" value={stats.total.toString()} icon={<TestCasesIcon className="h-6 w-6"/>} />
-            <StatCard title="Compliance Standards" value={stats.standards.toString()} icon={<ShieldCheckIcon className="h-6 w-6"/>} />
-            <StatCard title="Completed Tests" value={stats.completed.toString()} icon={<CheckCircleIcon className="h-6 w-6"/>} />
-            <StatCard title="Last Generated" value={lastGeneratedDate.split(' ')[1].replace(',', '')} icon={<ClockIcon className="h-6 w-6"/>} />
+            <StatCard title="Total Test Cases" value={stats.totalTestCases.toString()} icon={<FileTextIcon className="h-6 w-6"/>} />
+            <StatCard title="Total Requirements" value={stats.totalRequirements.toString()} icon={<FileTextIcon className="h-6 w-6"/>} />
+            <StatCard title="Critical Tests" value={stats.criticalTests.toString()} icon={<WarningIcon className="h-6 w-6 text-red-500"/>} />
+            <StatCard title="Compliance Standards" value={stats.uniqueStandards.toString()} icon={<ShieldCheckIcon className="h-6 w-6"/>} />
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div className="bg-surface border border-border-color rounded-lg p-6">
                 <div className="flex items-center gap-3 mb-1">
                     <FlaskIcon className="w-6 h-6 text-primary"/>
-                    <h2 className="text-lg font-semibold text-text-primary">Test Cases by Compliance Standard</h2>
+                    <h2 className="text-lg font-semibold text-text-primary">Compliance Distribution</h2>
                 </div>
                 <p className="text-sm text-text-secondary mb-4">Distribution of test cases across compliance requirements.</p>
                 {complianceData.length > 0 ? (
@@ -213,47 +258,55 @@ export const Reports: React.FC<ReportsProps> = ({ testCases, reports, setReports
                     </div>
                 )}
             </div>
-            <div className="bg-surface border border-border-color rounded-lg p-6">
+             <div className="bg-surface border border-border-color rounded-lg p-6">
                  <div className="flex items-center gap-3 mb-1">
                     <BarChartIcon className="w-6 h-6 text-primary"/>
-                    <h2 className="text-lg font-semibold text-text-primary">Test Case Status Overview</h2>
+                    <h2 className="text-lg font-semibold text-text-primary">Test Priority Distribution</h2>
                 </div>
-                <p className="text-sm text-text-secondary mb-6">Current status distribution of all test cases.</p>
-                <div className="space-y-5">
-                    {Object.entries(testCaseStatusOverview).map(([status, count]) => (
-                        <div key={status} className="flex justify-between items-center">
-                            <div className="flex items-center">
-                                <span className={`w-3 h-3 rounded-full mr-3 ${statusColors[status]?.dot || 'bg-gray-400'}`}></span>
-                                <span className="text-md text-text-primary">{status}</span>
-                            </div>
-                            <span className="text-md font-semibold text-text-primary">{count}</span>
-                        </div>
-                    ))}
+                <p className="text-sm text-text-secondary mb-6">Breakdown of test cases by priority level.</p>
+                <BarChart data={priorityDistribution} />
+            </div>
+             <div className="bg-surface border border-border-color rounded-lg p-6">
+                <div className="flex items-center gap-3 mb-1">
+                    <ChartPieIcon className="w-6 h-6 text-primary"/>
+                    <h2 className="text-lg font-semibold text-text-primary">Test Cases by Source</h2>
                 </div>
+                <p className="text-sm text-text-secondary mb-4">Origin of all generated test cases.</p>
+                {sourceDistribution.length > 0 ? (
+                    <DonutChart data={sourceDistribution} />
+                ) : (
+                    <div className="flex items-center justify-center h-64 bg-gray-50 rounded-lg">
+                        <p className="text-text-secondary">No source data available.</p>
+                    </div>
+                )}
+            </div>
+             <div className="bg-surface border border-border-color rounded-lg p-6">
+                 <div className="flex items-center gap-3 mb-1">
+                    <TagIcon className="w-6 h-6 text-primary"/>
+                    <h2 className="text-lg font-semibold text-text-primary">Primary Test Type Breakdown</h2>
+                </div>
+                <p className="text-sm text-text-secondary mb-6">Distribution of test cases by their main category.</p>
+                <BarChart data={typeDistribution} />
             </div>
         </div>
         
         <div className="bg-surface border border-border-color rounded-lg">
             <div className="p-4 border-b border-border-color flex flex-wrap items-center gap-4">
                 <div className="flex items-center flex-grow gap-4">
-                    <button className="px-4 py-2 border border-border-color text-sm font-medium rounded-md text-text-primary bg-surface hover:bg-gray-50">Select All</button>
                     <div className="relative flex-grow">
                         <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none"><SearchIcon className="w-5 h-5 text-gray-400" /></div>
                         <input type="text" placeholder="Search reports by name, type, or scope..." value={searchFilter} onChange={(e) => setSearchFilter(e.target.value)} className="bg-background border border-border-color text-text-primary text-sm rounded-lg focus:ring-primary focus:border-primary block w-full pl-10 p-2.5"/>
                     </div>
                 </div>
                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-text-secondary">Date Range:</span>
                     <select value={dateFilter} onChange={e => setDateFilter(e.target.value)} className="bg-background border border-border-color text-text-primary text-sm rounded-lg focus:ring-primary focus:border-primary block w-auto p-2.5">
                         <option value="all">All Time</option>
                         <option value="30">Last 30 days</option>
                         <option value="90">Last 90 days</option>
                     </select>
-                    <span className="text-sm text-text-secondary">Type:</span>
                      <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className="bg-background border border-border-color text-text-primary text-sm rounded-lg focus:ring-primary focus:border-primary block w-auto p-2.5">
                         {allReportTypes.map(type => <option key={type} value={type}>{type}</option>)}
                     </select>
-                    <span className="text-sm text-text-secondary">Status:</span>
                      <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="bg-background border border-border-color text-text-primary text-sm rounded-lg focus:ring-primary focus:border-primary block w-auto p-2.5">
                         {allReportStatuses.map(status => <option key={status} value={status}>{status}</option>)}
                     </select>
